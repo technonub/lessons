@@ -32,51 +32,64 @@ contract Tasks {
 
         timestamp = now;
     }
-    modifier checkOwnerAndAccept {
-		// Check that message was signed with contracts key.
-	    require(msg.pubkey() == tvm.pubkey(), 102);
-		tvm.accept();
-		_;
-	}
-    function touch() external {
-        // Each function that accepts external message must check that
-        // message is correctly signed.
+     modifier checkOwner() {       
+     
         require(msg.pubkey() == tvm.pubkey(), 102);
-        // Tells to the TVM that we accept this message.
-        tvm.accept();
-        // Update timestamp
-        timestamp = now;
+        tvm.accept();        
+        _;        
     }
+    
       
-    function AddToList(string  _name) public returns(string) {
+    function AddToList(string  _name) public checkOwner {
         tvm.accept();
         taskList myTask = taskList(_name, now, false);
-        Task[I] = myTask;
 	    I++;
-        return format("Задача'{}'внесена", Task[I].name);
+        
+
 	}
     
         
   
-    function sendValue(address dest, uint128 amount, bool bounce) public view {
-        require(msg.pubkey() == tvm.pubkey(), 102);
-        tvm.accept();
-        // It allows to make a transfer with arbitrary settings
-        dest.transfer(amount, bounce, 0);
-    }    
-    
-    
+    function getOpenTask() public checkOwner returns (uint){
+        uint c = 0;
+        for(uint8 id=1;id<=I;id++){
+           if((Task[id].done == false)&&(Task[id].name != "@deleted@")){
+               c++;
+            }        
+       }
+       return c;
+    }
+    function count() private checkOwner returns (uint){
+        uint c = 0;
+        for(uint8 id=1;id<=I;id++){
+           if(Task[id].name != "@deleted@"){
+               c++;
+            }        
+        }
+       return(c);
+
+    }
   
-    function Descriptipts(uint8 _key) public checkOwnerAndAccept returns (string) {       
-        tvm.accept();
-	    return format("Задача'{}'внесена", Task[_key].name);
-	}
-     
+    function Description() public checkOwner returns (taskList[]){        
+        uint taskSize = count();
+        taskList[] list = new taskList[](taskSize);
+        for( uint8 id = 1;id<=I;id++){
+            if(Task[id].name != "@deleted@"){
+            list[uint(id-1)] = Task[id];
+            }            
+        }    
+        return list;    
+    }
+      
+
     
     function DeleteTask(uint8 _key) public{
         delete Task[_key];
+        Task[_key].name ="@deleted@";
+    
     }
-    function WellDone(uint8 _key) public checkOwnerAndAccept{
+    function WellDone(uint8 _key) public checkOwner{
+        if (Task[_key].name !="@deleted@")
         Task[_key].done = true;
         
     }
